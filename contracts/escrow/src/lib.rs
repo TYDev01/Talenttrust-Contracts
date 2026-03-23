@@ -214,23 +214,23 @@ impl Escrow {
         // Retrieve contract
         let mut contract: EscrowContract = env.storage().persistent()
             .get(&symbol_short!("contract"))
-            .unwrap_or_else(|| panic_with_error!(&env, EscrowError::ContractNotFound));
+            .unwrap_or_else(|| panic!("Contract not found"));
         
         // Verify contract status
         if contract.status != ContractStatus::Funded {
-            panic_with_error!(&env, EscrowError::InvalidStatus);
+            panic!("Contract must be in Funded status to approve milestones");
         }
         
         // Validate milestone ID
         if milestone_id >= contract.milestones.len() {
-            panic_with_error!(&env, EscrowError::InvalidMilestoneId);
+            panic!("Invalid milestone ID");
         }
         
         let milestone = contract.milestones.get(milestone_id).unwrap();
         
         // Check if milestone already released
         if milestone.released {
-            panic_with_error!(&env, EscrowError::AlreadyReleased);
+            panic!("Milestone already released");
         }
         
         // Check authorization based on release_auth scheme
@@ -291,23 +291,23 @@ impl Escrow {
         // Retrieve contract
         let mut contract: EscrowContract = env.storage().persistent()
             .get(&symbol_short!("contract"))
-            .unwrap_or_else(|| panic_with_error!(&env, EscrowError::ContractNotFound));
+            .unwrap_or_else(|| panic!("Contract not found"));
         
         // Verify contract status
         if contract.status != ContractStatus::Funded {
-            panic_with_error!(&env, EscrowError::InvalidStatus);
+            panic!("Contract must be in Funded status to release milestones");
         }
         
         // Validate milestone ID
         if milestone_id >= contract.milestones.len() {
-            panic_with_error!(&env, EscrowError::InvalidMilestoneId);
+            panic!("Invalid milestone ID");
         }
         
         let milestone = contract.milestones.get(milestone_id).unwrap();
         
         // Check if milestone already released
         if milestone.released {
-            panic_with_error!(&env, EscrowError::AlreadyReleased);
+            panic!("Milestone already released");
         }
         
         // Check if milestone has sufficient approvals
