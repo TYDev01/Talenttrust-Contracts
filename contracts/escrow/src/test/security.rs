@@ -57,6 +57,28 @@ fn create_contract_rejects_invalid_party_or_milestone_input() {
 }
 
 #[test]
+fn create_contract_enforces_governed_milestone_limits() {
+    let (env, contract_id) = setup(true);
+    let client = EscrowClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let escrow_client = Address::generate(&env);
+    let freelancer = Address::generate(&env);
+    client.initialize_protocol_governance(&admin, &100_i128, &2_u32, &1_i128, &5_i128);
+
+    assert_panics(|| {
+        client.create_contract(&escrow_client, &freelancer, &vec![&env, 99_i128]);
+    });
+    assert_panics(|| {
+        client.create_contract(
+            &escrow_client,
+            &freelancer,
+            &vec![&env, 100_i128, 100_i128, 100_i128],
+        );
+    });
+}
+
+#[test]
 fn deposit_rejects_partial_duplicate_or_unknown_contract_funding() {
     let (env, contract_id) = setup(true);
     let client = EscrowClient::new(&env, &contract_id);
@@ -133,5 +155,71 @@ fn reputation_requires_completed_contract_credit_and_valid_rating() {
 
     assert_panics(|| {
         client.issue_reputation(&freelancer_addr, &4_i128);
+    });
+}
+
+#[test]
+fn governance_requires_admin_auth_valid_parameters_and_pending_admin_acceptance() {
+    let (env, contract_id) = setup(false);
+    let client = EscrowClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let next_admin = Address::generate(&env);
+
+    assert_panics(|| {
+        client.initialize_protocol_governance(&admin, &10_i128, &4_u32, &1_i128, &5_i128);
+    });
+
+    env.mock_all_auths();
+
+    assert!(client.initialize_protocol_governance(&admin, &10_i128, &4_u32, &1_i128, &5_i128));
+
+    assert_panics(|| {
+        client.initialize_protocol_governance(&admin, &10_i128, &4_u32, &1_i128, &5_i128);
+    });
+    assert_panics(|| {
+        client.update_protocol_parameters(&0_i128, &4_u32, &1_i128, &5_i128);
+    });
+    assert_panics(|| {
+        client.update_protocol_parameters(&10_i128, &0_u32, &1_i128, &5_i128);
+    });
+    assert_panics(|| {
+        client.update_protocol_parameters(&10_i128, &4_u32, &5_i128, &4_i128);
+    });
+    assert_panics(|| {
+        client.propose_governance_admin(&admin);
+    });
+
+    assert!(client.propose_governance_admin(&next_admin));
+    assert_eq!(
+        client.get_pending_governance_admin(),
+        Some(next_admin.clone())
+    );
+}
+
+#[test]
+fn governance_admin_actions_require_current_admin_and_ratings_follow_governed_range() {
+    let (env, contract_id) = setup(true);
+    let client = EscrowClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let next_admin = Address::generate(&env);
+    let escrow_client = Address::generate(&env);
+    let freelancer = Address::generate(&env);
+
+    client.initialize_protocol_governance(&admin, &10_i128, &3_u32, &2_i128, &4_i128);
+    client.propose_governance_admin(&next_admin);
+    client.accept_governance_admin();
+    assert!(client.update_protocol_parameters(&10_i128, &3_u32, &3_i128, &4_i128));
+
+    let id = client.create_contract(&escrow_client, &freelancer, &vec![&env, 10_i128]);
+    client.deposit_funds(&id, &10_i128);
+    client.release_milestone(&id, &0_u32);
+
+    assert_panics(|| {
+        client.issue_reputation(&freelancer, &2_i128);
+    });
+    assert_panics(|| {
+        client.issue_reputation(&freelancer, &5_i128);
     });
 }

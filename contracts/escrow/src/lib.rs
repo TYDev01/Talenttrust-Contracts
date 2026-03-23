@@ -2,6 +2,11 @@
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec};
 
+const DEFAULT_MIN_MILESTONE_AMOUNT: i128 = 1;
+const DEFAULT_MAX_MILESTONES: u32 = 16;
+const DEFAULT_MIN_REPUTATION_RATING: i128 = 1;
+const DEFAULT_MAX_REPUTATION_RATING: i128 = 5;
+
 /// Persistent lifecycle state for an escrow agreement.
 ///
 /// Security notes:
@@ -51,6 +56,16 @@ pub struct ReputationRecord {
     pub last_rating: i128,
 }
 
+/// Governed protocol parameters used by the escrow validation logic.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProtocolParameters {
+    pub min_milestone_amount: i128,
+    pub max_milestones: u32,
+    pub min_reputation_rating: i128,
+    pub max_reputation_rating: i128,
+}
+
 #[contracttype]
 #[derive(Clone)]
 enum DataKey {
@@ -58,6 +73,9 @@ enum DataKey {
     Contract(u32),
     Reputation(Address),
     PendingReputationCredits(Address),
+    GovernanceAdmin,
+    PendingGovernanceAdmin,
+    ProtocolParameters,
 }
 
 #[contract]
@@ -65,6 +83,112 @@ pub struct Escrow;
 
 #[contractimpl]
 impl Escrow {
+    /// Initializes protocol governance and stores the first guarded parameter set.
+    ///
+    /// Security properties:
+    /// - Initialization is one-time only.
+    /// - The initial admin must authorize the call.
+    /// - Parameters are validated before storage.
+    pub fn initialize_protocol_governance(
+        env: Env,
+        admin: Address,
+        min_milestone_amount: i128,
+        max_milestones: u32,
+        min_reputation_rating: i128,
+        max_reputation_rating: i128,
+    ) -> bool {
+        admin.require_auth();
+
+        if env.storage().persistent().has(&DataKey::GovernanceAdmin) {
+            panic!("protocol governance already initialized");
+        }
+
+        let parameters = Self::validated_protocol_parameters(
+            min_milestone_amount,
+            max_milestones,
+            min_reputation_rating,
+            max_reputation_rating,
+        );
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::GovernanceAdmin, &admin);
+        env.storage()
+            .persistent()
+            .set(&DataKey::ProtocolParameters, &parameters);
+
+        true
+    }
+
+    /// Updates governed protocol parameters.
+    ///
+    /// Security properties:
+    /// - Only the current governance admin may update parameters.
+    /// - Parameters are atomically replaced after validation.
+    pub fn update_protocol_parameters(
+        env: Env,
+        min_milestone_amount: i128,
+        max_milestones: u32,
+        min_reputation_rating: i128,
+        max_reputation_rating: i128,
+    ) -> bool {
+        let admin = Self::governance_admin(&env);
+        admin.require_auth();
+
+        let parameters = Self::validated_protocol_parameters(
+            min_milestone_amount,
+            max_milestones,
+            min_reputation_rating,
+            max_reputation_rating,
+        );
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::ProtocolParameters, &parameters);
+
+        true
+    }
+
+    /// Proposes a governance admin transfer. The new admin must later accept it.
+    ///
+    /// Security properties:
+    /// - Only the current governance admin may nominate a successor.
+    /// - The current admin cannot nominate itself.
+    pub fn propose_governance_admin(env: Env, new_admin: Address) -> bool {
+        let admin = Self::governance_admin(&env);
+        admin.require_auth();
+
+        if new_admin == admin {
+            panic!("new admin must differ from current admin");
+        }
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::PendingGovernanceAdmin, &new_admin);
+
+        true
+    }
+
+    /// Accepts a pending governance admin transfer.
+    ///
+    /// Security properties:
+    /// - Only the nominated pending admin may accept the transfer.
+    /// - Pending state is cleared when the transfer completes.
+    pub fn accept_governance_admin(env: Env) -> bool {
+        let pending_admin = Self::pending_governance_admin(&env)
+            .unwrap_or_else(|| panic!("no pending governance admin"));
+        pending_admin.require_auth();
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::GovernanceAdmin, &pending_admin);
+        env.storage()
+            .persistent()
+            .remove(&DataKey::PendingGovernanceAdmin);
+
+        true
+    }
+
     /// Creates a new escrow contract and stores milestone funding requirements.
     ///
     /// Security properties:
@@ -87,6 +211,11 @@ impl Escrow {
             panic!("at least one milestone is required");
         }
 
+        let protocol_parameters = Self::protocol_parameters(&env);
+        if milestone_amounts.len() > protocol_parameters.max_milestones {
+            panic!("milestone count exceeds governed limit");
+        }
+
         let mut milestones = Vec::new(&env);
         let mut total_amount = 0_i128;
         let mut index = 0_u32;
@@ -94,8 +223,8 @@ impl Escrow {
             let amount = milestone_amounts
                 .get(index)
                 .unwrap_or_else(|| panic!("missing milestone amount"));
-            if amount <= 0 {
-                panic!("milestone amount must be positive");
+            if amount < protocol_parameters.min_milestone_amount {
+                panic!("milestone amount below governed minimum");
             }
             total_amount = total_amount
                 .checked_add(amount)
@@ -218,8 +347,11 @@ impl Escrow {
     pub fn issue_reputation(env: Env, freelancer: Address, rating: i128) -> bool {
         freelancer.require_auth();
 
-        if !(1..=5).contains(&rating) {
-            panic!("rating must be between 1 and 5");
+        let protocol_parameters = Self::protocol_parameters(&env);
+        if rating < protocol_parameters.min_reputation_rating
+            || rating > protocol_parameters.max_reputation_rating
+        {
+            panic!("rating is outside governed bounds");
         }
 
         let pending_key = DataKey::PendingReputationCredits(freelancer.clone());
@@ -282,6 +414,24 @@ impl Escrow {
             .get(&DataKey::PendingReputationCredits(freelancer))
             .unwrap_or(0)
     }
+
+    /// Returns the active protocol parameters.
+    ///
+    /// If governance has not been initialized yet, this returns the safe default
+    /// parameters baked into the contract.
+    pub fn get_protocol_parameters(env: Env) -> ProtocolParameters {
+        Self::protocol_parameters(&env)
+    }
+
+    /// Returns the current governance admin, if governance has been initialized.
+    pub fn get_governance_admin(env: Env) -> Option<Address> {
+        env.storage().persistent().get(&DataKey::GovernanceAdmin)
+    }
+
+    /// Returns the pending governance admin, if an admin transfer is in flight.
+    pub fn get_pending_governance_admin(env: Env) -> Option<Address> {
+        Self::pending_governance_admin(&env)
+    }
 }
 
 impl Escrow {
@@ -309,6 +459,62 @@ impl Escrow {
         let key = DataKey::PendingReputationCredits(freelancer.clone());
         let current = env.storage().persistent().get::<_, u32>(&key).unwrap_or(0);
         env.storage().persistent().set(&key, &(current + 1));
+    }
+
+    fn governance_admin(env: &Env) -> Address {
+        env.storage()
+            .persistent()
+            .get(&DataKey::GovernanceAdmin)
+            .unwrap_or_else(|| panic!("protocol governance is not initialized"))
+    }
+
+    fn pending_governance_admin(env: &Env) -> Option<Address> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::PendingGovernanceAdmin)
+    }
+
+    fn protocol_parameters(env: &Env) -> ProtocolParameters {
+        env.storage()
+            .persistent()
+            .get(&DataKey::ProtocolParameters)
+            .unwrap_or_else(Self::default_protocol_parameters)
+    }
+
+    fn default_protocol_parameters() -> ProtocolParameters {
+        ProtocolParameters {
+            min_milestone_amount: DEFAULT_MIN_MILESTONE_AMOUNT,
+            max_milestones: DEFAULT_MAX_MILESTONES,
+            min_reputation_rating: DEFAULT_MIN_REPUTATION_RATING,
+            max_reputation_rating: DEFAULT_MAX_REPUTATION_RATING,
+        }
+    }
+
+    fn validated_protocol_parameters(
+        min_milestone_amount: i128,
+        max_milestones: u32,
+        min_reputation_rating: i128,
+        max_reputation_rating: i128,
+    ) -> ProtocolParameters {
+        if min_milestone_amount <= 0 {
+            panic!("minimum milestone amount must be positive");
+        }
+        if max_milestones == 0 {
+            panic!("maximum milestones must be positive");
+        }
+        if min_reputation_rating <= 0 {
+            panic!("minimum reputation rating must be positive");
+        }
+        if min_reputation_rating > max_reputation_rating {
+            panic!("reputation rating range is invalid");
+        }
+
+        ProtocolParameters {
+            min_milestone_amount,
+            max_milestones,
+            min_reputation_rating,
+            max_reputation_rating,
+        }
     }
 
     fn all_milestones_released(milestones: &Vec<Milestone>) -> bool {
