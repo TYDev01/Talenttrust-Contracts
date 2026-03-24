@@ -4,7 +4,32 @@ Soroban smart contracts for the TalentTrust decentralized freelancer escrow prot
 
 ## What's in this repo
 
-- **Escrow contract** (`contracts/escrow`): Holds funds in escrow, supports milestone-based payments and reputation credential issuance.
+- **Escrow contract** (`contracts/escrow`): Holds funds in escrow, supports milestone-based payments, reputation credential issuance, and **dispute resolution mechanism**.
+
+## Features
+
+### Core Escrow Functionality
+- Create escrow contracts with milestone-based payments
+- Deposit and release funds securely
+- Issue reputation credentials
+
+### Dispute Resolution Mechanism
+- **Admin/Arbitrator roles**: Secure access control for dispute resolution
+- **Deterministic payout outcomes**: Four resolution types with predictable results
+  - `FullRefund`: Client gets 100% refund
+  - `PartialRefund`: Client gets 70%, freelancer gets 30%
+  - `FullPayout`: Freelancer gets 100%
+  - `Split`: Custom split determined by arbitrator
+- **Evidence tracking**: Store dispute reasons and evidence
+- **Secure workflow**: Only authorized parties can create and resolve disputes
+
+## Security Features
+
+- **Access control**: Role-based permissions for admin, arbitrator, client, and freelancer
+- **State validation**: Contracts must be in correct states for operations
+- **Deterministic payouts**: Mathematical guarantees for fund distribution
+- **Authorization checks**: All operations require proper authentication
+- **Input validation**: Prevents invalid splits and unauthorized actions
 
 ## Prerequisites
 
