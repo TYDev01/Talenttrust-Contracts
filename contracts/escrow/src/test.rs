@@ -23,11 +23,11 @@ fn test_create_contract() {
     let milestones = vec![&env, 200_0000000_i128, 400_0000000_i128, 600_0000000_i128];
 
     let id = client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
     assert_eq!(id, 1);
 }
@@ -44,11 +44,11 @@ fn test_create_contract_with_arbiter() {
     let milestones = vec![&env, 1000_0000000_i128];
 
     let id = client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &Some(arbiter_addr.clone()), 
-        &milestones, 
-        &ReleaseAuthorization::ClientAndArbiter
+        &client_addr,
+        &freelancer_addr,
+        &Some(arbiter_addr.clone()),
+        &milestones,
+        &ReleaseAuthorization::ClientAndArbiter,
     );
     assert_eq!(id, 1);
 }
@@ -65,11 +65,11 @@ fn test_create_contract_no_milestones() {
     let milestones = vec![&env];
 
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 }
 
@@ -84,11 +84,11 @@ fn test_create_contract_same_addresses() {
     let milestones = vec![&env, 1000_0000000_i128];
 
     client.create_contract(
-        &client_addr, 
-        &client_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &client_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 }
 
@@ -104,11 +104,11 @@ fn test_create_contract_negative_amount() {
     let milestones = vec![&env, -1000_0000000_i128];
 
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 }
 
@@ -124,11 +124,11 @@ fn test_deposit_funds() {
 
     // Create contract first
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 
     // Note: Authentication tests would require proper mock setup
@@ -152,11 +152,11 @@ fn test_deposit_funds_wrong_amount() {
 
     // Create contract first
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 
     // Note: Authentication tests would require proper mock setup
@@ -178,11 +178,11 @@ fn test_approve_milestone_release_client_only() {
 
     // Create contract
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 
     env.mock_all_auths();
@@ -204,11 +204,11 @@ fn test_approve_milestone_release_client_and_arbiter() {
 
     // Create contract
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &Some(arbiter_addr), 
-        &milestones, 
-        &ReleaseAuthorization::ClientAndArbiter
+        &client_addr,
+        &freelancer_addr,
+        &Some(arbiter_addr),
+        &milestones,
+        &ReleaseAuthorization::ClientAndArbiter,
     );
 
     env.mock_all_auths();
@@ -234,11 +234,11 @@ fn test_approve_milestone_release_unauthorized() {
 
     // Create contract
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 
     env.mock_all_auths();
@@ -259,11 +259,11 @@ fn test_approve_milestone_release_invalid_id() {
 
     // Create contract
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 
     env.mock_all_auths();
@@ -284,11 +284,11 @@ fn test_approve_milestone_release_already_approved() {
 
     // Create contract
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 
     // First approval should succeed
@@ -313,11 +313,11 @@ fn test_release_milestone_client_only() {
 
     // Create contract
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 
     env.mock_all_auths();
@@ -341,11 +341,11 @@ fn test_release_milestone_arbiter_only() {
 
     // Create contract
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &Some(arbiter_addr.clone()), 
-        &milestones, 
-        &ReleaseAuthorization::ArbiterOnly
+        &client_addr,
+        &freelancer_addr,
+        &Some(arbiter_addr.clone()),
+        &milestones,
+        &ReleaseAuthorization::ArbiterOnly,
     );
 
     env.mock_all_auths();
@@ -369,11 +369,11 @@ fn test_release_milestone_no_approval() {
 
     // Create contract
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 
     env.mock_all_auths();
@@ -394,11 +394,11 @@ fn test_release_milestone_already_released() {
 
     // Create contract
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 
     env.mock_all_auths();
@@ -425,11 +425,11 @@ fn test_release_milestone_multi_sig() {
 
     // Create contract
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &Some(arbiter_addr), 
-        &milestones, 
-        &ReleaseAuthorization::MultiSig
+        &client_addr,
+        &freelancer_addr,
+        &Some(arbiter_addr),
+        &milestones,
+        &ReleaseAuthorization::MultiSig,
     );
 
     env.mock_all_auths();
@@ -452,11 +452,11 @@ fn test_contract_completion_all_milestones_released() {
 
     // Create contract
     client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
 
     env.mock_all_auths();
@@ -485,11 +485,11 @@ fn test_edge_cases() {
 
     // Test with minimum amount
     let id = client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
     assert_eq!(id, 1);
 
@@ -502,11 +502,11 @@ fn test_edge_cases() {
         400_0000000_i128,
     ];
     let id2 = client.create_contract(
-        &client_addr, 
-        &freelancer_addr, 
-        &None::<Address>, 
-        &many_milestones, 
-        &ReleaseAuthorization::ClientOnly
+        &client_addr,
+        &freelancer_addr,
+        &None::<Address>,
+        &many_milestones,
+        &ReleaseAuthorization::ClientOnly,
     );
     assert_eq!(id2, 2); // Should increment contract ID
 }
