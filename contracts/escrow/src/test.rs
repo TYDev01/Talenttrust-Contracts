@@ -22,9 +22,7 @@ fn test_initialize() {
     let arbitrator = Address::generate(&env);
 
     // Set the admin as the invoking address for authentication
-    env.mock_auths(&[
-        (&contract_id, &admin, &symbol_short!("initialize")),
-    ]);
+    env.mock_auths(&[(&contract_id, &admin, &symbol_short!("initialize"))]);
 
     client.initialize(&admin, &arbitrator);
 }
@@ -44,12 +42,16 @@ fn test_create_contract() {
     // Set up authentication
     env.mock_auths(&[
         (&contract_id, &admin, &symbol_short!("initialize")),
-        (&contract_id, &client_addr, &symbol_short!("create_contract")),
+        (
+            &contract_id,
+            &client_addr,
+            &symbol_short!("create_contract"),
+        ),
     ]);
 
     // Initialize first
     client.initialize(&admin, &arbitrator);
-    
+
     // Then create contract
     let id = client.create_contract(&client_addr, &freelancer_addr, &milestones);
     assert_eq!(id, 1);
@@ -70,14 +72,18 @@ fn test_deposit_funds() {
     // Set up authentication
     env.mock_auths(&[
         (&contract_id, &admin, &symbol_short!("initialize")),
-        (&contract_id, &client_addr, &symbol_short!("create_contract")),
+        (
+            &contract_id,
+            &client_addr,
+            &symbol_short!("create_contract"),
+        ),
         (&contract_id, &client_addr, &symbol_short!("deposit_funds")),
     ]);
 
     // Initialize and create contract
     client.initialize(&admin, &arbitrator);
     let escrow_id = client.create_contract(&client_addr, &freelancer_addr, &milestones);
-    
+
     // Deposit funds
     let result = client.deposit_funds(&escrow_id, &1_000_0000000);
     assert!(result);
@@ -98,16 +104,24 @@ fn test_release_milestone() {
     // Set up authentication
     env.mock_auths(&[
         (&contract_id, &admin, &symbol_short!("initialize")),
-        (&contract_id, &client_addr, &symbol_short!("create_contract")),
+        (
+            &contract_id,
+            &client_addr,
+            &symbol_short!("create_contract"),
+        ),
         (&contract_id, &client_addr, &symbol_short!("deposit_funds")),
-        (&contract_id, &client_addr, &symbol_short!("release_milestone")),
+        (
+            &contract_id,
+            &client_addr,
+            &symbol_short!("release_milestone"),
+        ),
     ]);
 
     // Initialize, create, and fund contract
     client.initialize(&admin, &arbitrator);
     let escrow_id = client.create_contract(&client_addr, &freelancer_addr, &milestones);
     client.deposit_funds(&escrow_id, &1_000_0000000);
-    
+
     // Release milestone
     let result = client.release_milestone(&escrow_id, &0);
     assert!(result);
@@ -131,7 +145,11 @@ fn test_create_dispute() {
     // Set up authentication
     env.mock_auths(&[
         (&contract_id, &admin, &symbol_short!("initialize")),
-        (&contract_id, &client_addr, &symbol_short!("create_contract")),
+        (
+            &contract_id,
+            &client_addr,
+            &symbol_short!("create_contract"),
+        ),
         (&contract_id, &client_addr, &symbol_short!("deposit_funds")),
         (&contract_id, &client_addr, &symbol_short!("create_dispute")),
     ]);
@@ -165,7 +183,11 @@ fn test_resolve_dispute_full_refund() {
     // Set up authentication
     env.mock_auths(&[
         (&contract_id, &admin, &symbol_short!("initialize")),
-        (&contract_id, &client_addr, &symbol_short!("create_contract")),
+        (
+            &contract_id,
+            &client_addr,
+            &symbol_short!("create_contract"),
+        ),
         (&contract_id, &client_addr, &symbol_short!("deposit_funds")),
         (&contract_id, &client_addr, &symbol_short!("create_dispute")),
         (&contract_id, &arbitrator, &symbol_short!("resolve_dispute")),
@@ -182,7 +204,12 @@ fn test_resolve_dispute_full_refund() {
     let dispute_id = client.create_dispute(&escrow_id, &reason, &evidence);
 
     // Resolve dispute with full refund
-    let result = client.resolve_dispute(&dispute_id, &soroban_sdk::symbol_short!("FullRefund"), &0, &0);
+    let result = client.resolve_dispute(
+        &dispute_id,
+        &soroban_sdk::symbol_short!("FullRefund"),
+        &0,
+        &0,
+    );
     assert!(result);
 }
 
@@ -202,7 +229,11 @@ fn test_resolve_dispute_partial_refund() {
     // Set up authentication
     env.mock_auths(&[
         (&contract_id, &admin, &symbol_short!("initialize")),
-        (&contract_id, &client_addr, &symbol_short!("create_contract")),
+        (
+            &contract_id,
+            &client_addr,
+            &symbol_short!("create_contract"),
+        ),
         (&contract_id, &client_addr, &symbol_short!("deposit_funds")),
         (&contract_id, &client_addr, &symbol_short!("create_dispute")),
         (&contract_id, &arbitrator, &symbol_short!("resolve_dispute")),
@@ -219,7 +250,12 @@ fn test_resolve_dispute_partial_refund() {
     let dispute_id = client.create_dispute(&escrow_id, &reason, &evidence);
 
     // Resolve dispute with partial refund
-    let result = client.resolve_dispute(&dispute_id, &soroban_sdk::symbol_short!("PartialRefund"), &0, &0);
+    let result = client.resolve_dispute(
+        &dispute_id,
+        &soroban_sdk::symbol_short!("PartialRefund"),
+        &0,
+        &0,
+    );
     assert!(result);
 }
 
@@ -239,7 +275,11 @@ fn test_resolve_dispute_full_payout() {
     // Set up authentication
     env.mock_auths(&[
         (&contract_id, &admin, &symbol_short!("initialize")),
-        (&contract_id, &client_addr, &symbol_short!("create_contract")),
+        (
+            &contract_id,
+            &client_addr,
+            &symbol_short!("create_contract"),
+        ),
         (&contract_id, &client_addr, &symbol_short!("deposit_funds")),
         (&contract_id, &client_addr, &symbol_short!("create_dispute")),
         (&contract_id, &arbitrator, &symbol_short!("resolve_dispute")),
@@ -256,7 +296,12 @@ fn test_resolve_dispute_full_payout() {
     let dispute_id = client.create_dispute(&escrow_id, &reason, &evidence);
 
     // Resolve dispute with full payout to freelancer
-    let result = client.resolve_dispute(&dispute_id, &soroban_sdk::symbol_short!("FullPayout"), &0, &0);
+    let result = client.resolve_dispute(
+        &dispute_id,
+        &soroban_sdk::symbol_short!("FullPayout"),
+        &0,
+        &0,
+    );
     assert!(result);
 }
 
@@ -276,7 +321,11 @@ fn test_resolve_dispute_custom_split() {
     // Set up authentication
     env.mock_auths(&[
         (&contract_id, &admin, &symbol_short!("initialize")),
-        (&contract_id, &client_addr, &symbol_short!("create_contract")),
+        (
+            &contract_id,
+            &client_addr,
+            &symbol_short!("create_contract"),
+        ),
         (&contract_id, &client_addr, &symbol_short!("deposit_funds")),
         (&contract_id, &client_addr, &symbol_short!("create_dispute")),
         (&contract_id, &arbitrator, &symbol_short!("resolve_dispute")),
@@ -319,7 +368,11 @@ fn test_resolve_dispute_invalid_split() {
     // Set up authentication
     env.mock_auths(&[
         (&contract_id, &admin, &symbol_short!("initialize")),
-        (&contract_id, &client_addr, &symbol_short!("create_contract")),
+        (
+            &contract_id,
+            &client_addr,
+            &symbol_short!("create_contract"),
+        ),
         (&contract_id, &client_addr, &symbol_short!("deposit_funds")),
         (&contract_id, &client_addr, &symbol_short!("create_dispute")),
         (&contract_id, &arbitrator, &symbol_short!("resolve_dispute")),
@@ -361,7 +414,11 @@ fn test_create_dispute_unauthorized() {
     // Set up authentication
     env.mock_auths(&[
         (&contract_id, &admin, &symbol_short!("initialize")),
-        (&contract_id, &client_addr, &symbol_short!("create_contract")),
+        (
+            &contract_id,
+            &client_addr,
+            &symbol_short!("create_contract"),
+        ),
         (&contract_id, &client_addr, &symbol_short!("deposit_funds")),
     ]);
 
@@ -436,9 +493,7 @@ fn test_double_initialize() {
     let arbitrator = Address::generate(&env);
 
     // Set up authentication
-    env.mock_auths(&[
-        (&contract_id, &admin, &symbol_short!("initialize")),
-    ]);
+    env.mock_auths(&[(&contract_id, &admin, &symbol_short!("initialize"))]);
 
     client.initialize(&admin, &arbitrator);
 
