@@ -157,6 +157,15 @@ fn test_is_release_ready_true_after_deposit() {
 
 #[test]
 #[should_panic]
+fn test_is_release_ready_unknown_contract_panics() {
+    let env = Env::default();
+    let cid = env.register(Escrow, ());
+    let client = EscrowClient::new(&env, &cid);
+    client.is_release_ready(&999);
+}
+
+#[test]
+#[should_panic]
 fn test_deposit_zero_panics() {
     let env = Env::default();
     let cid = env.register(Escrow, ());
@@ -277,6 +286,15 @@ fn test_release_duplicate_milestone_panics() {
     client.release_milestone(&id, &0);
 }
 
+#[test]
+#[should_panic]
+fn test_release_unknown_contract_panics() {
+    let env = Env::default();
+    let cid = env.register(Escrow, ());
+    let client = EscrowClient::new(&env, &cid);
+    client.release_milestone(&999, &0);
+}
+
 // ---------------------------------------------------------------------------
 // issue_reputation
 // ---------------------------------------------------------------------------
@@ -329,6 +347,15 @@ fn test_is_post_deploy_complete_full_lifecycle() {
     assert!(!client.is_post_deploy_complete(&id)); // reputation still missing
     client.issue_reputation(&id, &fa, &5_i128);
     assert!(client.is_post_deploy_complete(&id));
+}
+
+#[test]
+#[should_panic]
+fn test_is_post_deploy_complete_unknown_contract_panics() {
+    let env = Env::default();
+    let cid = env.register(Escrow, ());
+    let client = EscrowClient::new(&env, &cid);
+    client.is_post_deploy_complete(&999);
 }
 
 // ---------------------------------------------------------------------------
@@ -391,3 +418,6 @@ fn test_independent_contracts_do_not_share_checklist_state() {
     assert!(client.is_release_ready(&id1));
     assert!(!client.is_release_ready(&id2));
 }
+
+mod input_sanitization_amounts;
+mod input_sanitization_identities;

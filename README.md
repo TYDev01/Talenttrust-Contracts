@@ -21,6 +21,16 @@ Query checklist state with `get_release_checklist`, `is_release_ready`, and `is_
 
 See [docs/escrow/release-readiness-checklist.md](docs/escrow/release-readiness-checklist.md) for full details, function reference, error codes, and security model.
 
+### Input Sanitization Hardening
+
+The escrow contract rejects malformed contract-creation inputs before any state is written:
+
+- `client` and `freelancer` must be different addresses.
+- Every milestone amount must be strictly positive (`> 0`).
+- Milestone count must be between `1` and `MAX_MILESTONES` (`20`).
+
+Deposits continue to enforce a strict positive amount (`amount > 0`).
+
 ## Prerequisites
 
 - [Rust](https://rustup.rs/) (stable, 1.75+)
@@ -39,6 +49,9 @@ cargo build
 
 # Run tests
 cargo test
+
+# Run escrow-focused coverage (requires cargo-llvm-cov)
+cargo llvm-cov --package escrow --lib --fail-under-lines 95
 
 # Check formatting
 cargo fmt --all -- --check

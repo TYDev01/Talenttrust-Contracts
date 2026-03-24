@@ -27,6 +27,10 @@ pub enum EscrowError {
     InvalidDepositAmount = 5,
     /// The number of milestones exceeds the allowed maximum.
     TooManyMilestones = 6,
+    /// Client and freelancer identities must be different.
+    DuplicateIdentities = 7,
+    /// Milestone amount must be strictly positive.
+    InvalidMilestoneAmount = 8,
 }
 
 // ---------------------------------------------------------------------------
@@ -163,7 +167,9 @@ impl Escrow {
     /// Sets `contract_created`, `parties_authenticated`, and `milestones_defined`.
     ///
     /// # Panics
-    /// Panics with `TooManyMilestones` if `milestone_amounts.len() > MAX_MILESTONES`.
+    /// - `TooManyMilestones`      — `milestone_amounts` is empty or exceeds limit.
+    /// - `DuplicateIdentities`   — `client == freelancer`.
+    /// - `InvalidMilestoneAmount` — any milestone amount is `<= 0`.
     pub fn create_contract(
         env: Env,
         client: Address,
@@ -173,6 +179,10 @@ impl Escrow {
         let count = milestone_amounts.len();
         if count == 0 || count > MAX_MILESTONES {
             panic_with_error!(&env, EscrowError::TooManyMilestones)
+        }
+
+        if client == freelancer {
+            panic_with_error!(&env, EscrowError::DuplicateIdentities)
         }
 
         // Allocate a unique ID.
@@ -187,6 +197,9 @@ impl Escrow {
         // Build milestone list.
         let mut milestones: Vec<Milestone> = Vec::new(&env);
         for amount in milestone_amounts.iter() {
+            if amount <= 0 {
+                panic_with_error!(&env, EscrowError::InvalidMilestoneAmount)
+            }
             milestones.push_back(Milestone {
                 amount,
                 released: false,
