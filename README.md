@@ -25,6 +25,9 @@ cargo build
 # Run tests
 cargo test
 
+# Property-based Tests (Escrow invariants)
+cargo test test_balance_and_status_invariants
+
 # Check formatting
 cargo fmt --all -- --check
 
