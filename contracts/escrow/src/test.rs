@@ -1,47 +1,63 @@
-use soroban_sdk::{symbol_short, testutils::Address as _, vec, Address, Env};
+extern crate std;
 
-use crate::{Escrow, EscrowClient};
+use soroban_sdk::{testutils::Address as _, vec, Address, Env, Vec};
 
-#[test]
-fn test_hello() {
+use crate::{ContractStatus, Escrow, EscrowClient, EscrowContractData, Milestone};
+
+#[path = "create_contract.rs"]
+mod create_contract;
+#[path = "deposit.rs"]
+mod deposit;
+#[path = "refund.rs"]
+mod refund;
+#[path = "release.rs"]
+mod release;
+
+fn setup() -> (Env, Address, Address) {
     let env = Env::default();
-    let contract_id = env.register(Escrow, ());
-    let client = EscrowClient::new(&env, &contract_id);
-
-    let result = client.hello(&symbol_short!("World"));
-    assert_eq!(result, symbol_short!("World"));
-}
-
-#[test]
-fn test_create_contract() {
-    let env = Env::default();
-    let contract_id = env.register(Escrow, ());
-    let client = EscrowClient::new(&env, &contract_id);
+    env.mock_all_auths();
 
     let client_addr = Address::generate(&env);
     let freelancer_addr = Address::generate(&env);
-    let milestones = vec![&env, 200_0000000_i128, 400_0000000_i128, 600_0000000_i128];
 
-    let id = client.create_contract(&client_addr, &freelancer_addr, &milestones);
-    assert_eq!(id, 1);
+    (env, client_addr, freelancer_addr)
 }
 
-#[test]
-fn test_deposit_funds() {
-    let env = Env::default();
+fn create_client(env: &Env) -> EscrowClient<'_> {
     let contract_id = env.register(Escrow, ());
-    let client = EscrowClient::new(&env, &contract_id);
-
-    let result = client.deposit_funds(&1, &1_000_0000000);
-    assert!(result);
+    EscrowClient::new(env, &contract_id)
 }
 
-#[test]
-fn test_release_milestone() {
-    let env = Env::default();
-    let contract_id = env.register(Escrow, ());
-    let client = EscrowClient::new(&env, &contract_id);
+fn create_default_contract(
+    env: &Env,
+    client: &EscrowClient<'_>,
+    client_addr: &Address,
+    freelancer_addr: &Address,
+) -> u32 {
+    let milestones = vec![env, 200_0000000_i128, 400_0000000_i128, 600_0000000_i128];
+    client.create_contract(client_addr, freelancer_addr, &milestones)
+}
 
-    let result = client.release_milestone(&1, &0);
-    assert!(result);
+fn assert_contract_state(
+    contract: EscrowContractData,
+    expected_status: ContractStatus,
+    expected_funded: i128,
+    expected_released: i128,
+    expected_refunded: i128,
+) {
+    assert_eq!(contract.status, expected_status);
+    assert_eq!(contract.funded_amount, expected_funded);
+    assert_eq!(contract.released_amount, expected_released);
+    assert_eq!(contract.refunded_amount, expected_refunded);
+}
+
+fn assert_milestone_flags(
+    milestones: Vec<Milestone>,
+    milestone_id: u32,
+    expected_released: bool,
+    expected_refunded: bool,
+) {
+    let milestone = milestones.get(milestone_id).unwrap();
+    assert_eq!(milestone.released, expected_released);
+    assert_eq!(milestone.refunded, expected_refunded);
 }
