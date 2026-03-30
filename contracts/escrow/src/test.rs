@@ -72,6 +72,7 @@ mod events;
 mod flows;
 mod governance;
 mod lifecycle;
+mod mainnet_readiness;
 mod operation_errors;
 mod pause_controls;
 mod performance;

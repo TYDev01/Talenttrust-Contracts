@@ -38,6 +38,12 @@ const DEFAULT_MAX_MILESTONES: u32 = 16;
 const DEFAULT_MIN_REPUTATION_RATING: i128 = 1;
 const DEFAULT_MAX_REPUTATION_RATING: i128 = 5;
 
+/// Reported deployment version for operators (`major * 1_000_000 + minor * 1_000 + patch`).
+pub const MAINNET_PROTOCOL_VERSION: u32 = 1_000_000;
+
+/// Hard ceiling on the sum of milestone amounts per escrow (stroops). Not governed; change only via wasm upgrade.
+pub const MAINNET_MAX_TOTAL_ESCROW_PER_CONTRACT_STROOPS: i128 = 1_000_000_000_000;
+
 // ─── Storage keys ────────────────────────────────────────────────────────────
 
 #[contracttype]
@@ -103,6 +109,19 @@ pub struct ReputationRecord {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProtocolParameters {
+    pub min_milestone_amount: i128,
+    pub max_milestones: u32,
+    pub min_reputation_rating: i128,
+    pub max_reputation_rating: i128,
+}
+
+/// On-chain summary for mainnet deployment review and monitoring integration.
+/// Fields mirror [`ProtocolParameters`] without nesting (Soroban SDK nesting limits).
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MainnetReadinessInfo {
+    pub protocol_version: u32,
+    pub max_escrow_total_stroops: i128,
     pub min_milestone_amount: i128,
     pub max_milestones: u32,
     pub min_reputation_rating: i128,
@@ -501,6 +520,10 @@ impl Escrow {
             });
         }
 
+        if total_amount > MAINNET_MAX_TOTAL_ESCROW_PER_CONTRACT_STROOPS {
+            panic!("total escrow exceeds mainnet hard cap");
+        }
+
         client.require_auth();
 
         let contract_id = Self::next_contract_id(&env);
@@ -736,6 +759,19 @@ impl Escrow {
             .persistent()
             .get(&DataKey::PendingReputationCredits(freelancer))
             .unwrap_or(0)
+    }
+
+    /// Aggregates immutable caps, protocol version, and current governed parameters for mainnet readiness review.
+    pub fn get_mainnet_readiness_info(env: Env) -> MainnetReadinessInfo {
+        let p = Self::protocol_parameters(&env);
+        MainnetReadinessInfo {
+            protocol_version: MAINNET_PROTOCOL_VERSION,
+            max_escrow_total_stroops: MAINNET_MAX_TOTAL_ESCROW_PER_CONTRACT_STROOPS,
+            min_milestone_amount: p.min_milestone_amount,
+            max_milestones: p.max_milestones,
+            min_reputation_rating: p.min_reputation_rating,
+            max_reputation_rating: p.max_reputation_rating,
+        }
     }
 }
 
