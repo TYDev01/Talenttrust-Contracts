@@ -25,7 +25,7 @@
 //! | `("escrow","complete")` | `id: u32`  *(only when last milestone released)*               |
 //! | `("escrow","rep")`      | `(id: u32, freelancer: Address, rating: i128)`                 |
 
-#![no_std]
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec};
 
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec,
